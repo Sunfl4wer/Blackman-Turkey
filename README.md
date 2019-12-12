@@ -15,7 +15,7 @@
 ![Image of bias](bt_bias.jpg)
 
 ## minimum_variance.m
-- MATLAB code for Minimum variance method using Barlett window to analyze PSD of signal with 3 sinusoid components
+- MATLAB code for Minimum variance method to analyze PSD of signal with 3 sinusoid components
 - Result
 ![Image of result](mv.jpg)
 
