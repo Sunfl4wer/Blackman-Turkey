@@ -14,6 +14,8 @@
 - Bias efficient
 ![Image of bias](bt_bias.jpg)
 
+# Minimym Variance
+
 ## minimum_variance.m
 - MATLAB code for Minimum variance method to analyze PSD of signal with 3 sinusoid components
 - Result
