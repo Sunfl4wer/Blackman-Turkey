@@ -15,7 +15,6 @@ t = t/fs;
 f1 = alpha*fs;
 f2 = beta*fs;
 f3 = muy*fs;
-M = N/2;
 f = 0:1:fs/2-1;
 noise_variance = 0.5:0.2:1.5;
 no_trial = 50;
@@ -23,35 +22,32 @@ mv = zeros(length(noise_variance),no_trial,fs/2);
 mv_mean = zeros(length(noise_variance),fs/2);
 mv_variance = zeros(length(noise_variance),fs/2);
 mv_bias = zeros(length(noise_variance),fs/2);
+sig = zeros(1,N);
+xm = zeros(1,Nfft);
+v = zeros(Nfft,fs);
+for j = 1:1:fs
+    for q = 1:1:Nfft
+        v(q,j) = exp(-1i*2*pi*(j-1)*(q-1)*T);
+    end
+end
 for step = 1:1:length(noise_variance)
     % Generate sample with white gaussian noise N(0,1)
     for trial = 1:1:no_trial
         w = sqrt(noise_variance(step))*randn(1,N);
         for n = 1:1:N
-            x(n) = a*cos(alpha*fs*2*pi*(n-1)/fs)+b*cos(beta*fs*2*pi*(n-1)/fs)+c*cos(muy*fs*2*pi*(n-1)/fs)+w(n);
+            xm(n) = a*cos(alpha*fs*2*pi*(n-1)/fs)+b*cos(beta*fs*2*pi*(n-1)/fs)+c*cos(muy*fs*2*pi*(n-1)/fs)+w(n);;
         end
-        xm = ones(M,M);
-        for j = 1:1:M
-            for i = 1:1:M
-                xm(M-i+1,j) = x(i+j-1);
-            end
-        end
-        Rx = xm'*xm;
-        Rx = Rx./M;
-        v = zeros(M,fs);
-        for j = 1:1:fs
-            for q = 1:1:M
-                v(q,j) = exp(-1i*2*pi*(j-1)*(q-1)*T);
-            end
-        end
+        xm=xm-mean(xm);    % remove mean to prepare for covariance estimation
+        xc=xcorr(xm,Nfft-1,'biased'); % compute covariance sequence
+        Rx=toeplitz(xc(Nfft:end));
         Px = (v')*(inv(Rx))*(v);
         P = zeros(1,fs/2);
         for q = 1:1:fs/2
-                P(q) = Px(q,q)+P(q);
+                P(q) = Px(q,q);
         end
         for q = 1:1:fs/2
-                P(q) = M/P(q);
                 P(q) = abs(P(q));
+                P(q) = Nfft/P(q);
                 P(q) = 10*log10(P(q));
         end
         for freq = 1:1:fs/2
@@ -85,30 +81,25 @@ end
 
 % No noise
 for n = 1:1:N
-    x0(n) = a*cos(alpha*fs*2*pi*(n-1)/fs)+b*cos(beta*fs*2*pi*(n-1)/fs)+c*cos(muy*fs*2*pi*(n-1)/fs)+w(n);
+    sig0(n) = a*cos(alpha*fs*2*pi*(n-1)/fs)+b*cos(beta*fs*2*pi*(n-1)/fs)+c*cos(muy*fs*2*pi*(n-1)/fs)+w(n);
 end
-xm0 = ones(M,M);
-for j = 1:1:M
-    for i = 1:1:M
-        xm0(M-i+1,j) = x0(i+j-1);
-    end
+for n = 1:1:N
+    xm0(n) = sig0(n);
 end
-Rx0 = xm0'*xm0;
-Rx0 = Rx0./M;
-v0 = zeros(M,fs);
-for j = 1:1:fs
-    for q = 1:1:M
-        v0(q,j) = exp(-1i*2*pi*(j-1)*(q-1)*T);
-    end
+for n = N+1:1:Nfft
+    xm0(n) = 0;
 end
-Px0 = (v0')*(inv(Rx0))*(v0);
+xm0=xm0-mean(xm0);    % remove mean to prepare for covariance estimation
+xc0=xcorr(xm0,Nfft-1,'biased'); % compute covariance sequence
+Rx0=toeplitz(xc0(Nfft:end));
+Px0 = (v')*(inv(Rx0))*(v);
 P0 = zeros(1,fs/2);
 for q = 1:1:fs/2
-        P0(q) = Px0(q,q)+P0(q);
+        P0(q) = Px0(q,q);
 end
 for q = 1:1:fs/2
-        P0(q) = M/P0(q);
         P0(q) = abs(P0(q));
+        P0(q) = Nfft/P0(q);
         P0(q) = 10*log10(P0(q));
 end
 
