@@ -14,28 +14,37 @@ t = t/fs;
 f1 = alpha*fs;
 f2 = beta*fs;
 f3 = muy*fs;
-variance = 0;
+variance = 1;
 w = sqrt(variance)*randn(1,N);
 % Generate sample with white gaussian noise N(0,1)
 for n = 1:1:N
-    x(n) = a*cos(alpha*fs*2*pi*(n-1)/fs)+b*cos(beta*fs*2*pi*(n-1)/fs)+c*cos(muy*fs*2*pi*(n-1)/fs)+w(n);
+    sig(n) = a*cos(alpha*fs*2*pi*(n-1)/fs)+b*cos(beta*fs*2*pi*(n-1)/fs)+c*cos(muy*fs*2*pi*(n-1)/fs)+w(n);
 end
-
+for n = 1:1:Nfft/2
+    x(n) = 0;
+end
+for n = Nfft/2+1:1:Nfft/2+N
+    x(n) = sig(n-Nfft/2);
+end
+for n = Nfft/2+N+1:1:Nfft
+    x(n) = 0;
+end
 % Calculate correlation of signal
-rx = zeros(1,N);
-for m = (N/2):(N-1)
-    for n = (N/2):(N-m-1+N/2)
-        rx(m) = rx(m) + x(n+m-N/2)*x(n);
+rx = zeros(1,Nfft);
+for m = (Nfft/2+1):(Nfft)
+    for n = (Nfft/2+1):(Nfft-m+1+Nfft/2)
+        rx(m) = rx(m) + x(n+m-Nfft/2-1)*x(n);
     end
-    rx(m) = rx(m)/(N-m);
+    rx(m) = rx(m)/(Nfft-m+1);
 end
-for m = 1:N/2
-    rx(m) = rx(N-m);
+for m = 2:Nfft/2
+    rx(m) = rx(Nfft-m+2);
 end
 
 % Generate Barlett window values
-M = round(N/10);
-L = 2*M+1;
+ %round(Nfft/10);
+L = round(Nfft/10);
+M = (L-1)/2;
 wbarlett = zeros(1,L);
 for m = 1:L
     if(m<=((L+1)/2))
@@ -49,7 +58,7 @@ end
 Pbt = zeros(1,fs/2);
 for f = 1:fs/2
     for i = -M:M
-        Pbt(f) = Pbt(f) + wbarlett(i+(L+1)/2)*rx(N/2+i)*exp(-1i*2*pi*(f-1)*(i+N/2)*T);
+        Pbt(f) = Pbt(f) + wbarlett(i+(L+1)/2)*rx(Nfft/2+i+1)*exp(-1i*2*pi*(f-1)*(i+Nfft/2+1)*T);
     end
     Pbt(f) = abs(Pbt(f))*T;
 end
@@ -57,7 +66,7 @@ Pbt = 10*log10(Pbt);
 
 % Plotting the signal and periodogram
 subplot(1,2,1);
-plot(t,x);
+plot(t,sig(1:1:N));
 title_1 = strcat("Sample signal with f1 = ",num2str(f1),"Hz, f2 = ",num2str(f2),"Hz, f3 = ",num2str(f3),"Hz, with fs = ",num2str(fs),"Hz");
 title_11 = strcat("number of samples = ",num2str(N),", noise = N(0,1)");
 title({title_1,title_11});
