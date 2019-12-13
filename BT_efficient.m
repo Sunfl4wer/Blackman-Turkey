@@ -1,7 +1,7 @@
 clear
 clc
 Nfft = 2048;
-N = 1000;
+N = 100;
 a = 5;
 b = 2;
 c = 5;
@@ -26,35 +26,46 @@ for step = 1:1:length(noise_variance)
     for trial = 1:1:no_trial
         w = sqrt(noise_variance(step))*randn(1,N);
         for n = 1:1:N
-            x(n) = a*cos(alpha*fs*2*pi*(n-1)/fs)+b*cos(beta*fs*2*pi*(n-1)/fs)+c*cos(muy*fs*2*pi*(n-1)/fs)+w(n);
+            sig(n) = a*cos(alpha*fs*2*pi*(n-1)/fs)+b*cos(beta*fs*2*pi*(n-1)/fs)+c*cos(muy*fs*2*pi*(n-1)/fs)+w(n);
+        end
+        for n = 1:1:Nfft/2
+            x(n) = 0;
+        end
+        for n = Nfft/2+1:1:Nfft/2+N
+            x(n) = sig(n-Nfft/2);
+        end
+        for n = Nfft/2+N+1:1:Nfft
+            x(n) = 0;
         end
         % Calculate correlation of signal
-        Rx_bt = zeros(1,N);
-        for m = (N/2):(N-1)
-            for n = (N/2):(N-m-1+N/2)
-                Rx_bt(m) = Rx_bt(m) + x(n+m-N/2)*x(n);
+        rx = zeros(1,Nfft);
+        for m = (Nfft/2+1):(Nfft)
+            for n = (Nfft/2+1):(Nfft-m+1+Nfft/2)
+                rx(m) = rx(m) + x(n+m-Nfft/2-1)*x(n);
             end
-            Rx_bt(m) = Rx_bt(m)/(N-m);
+            rx(m) = rx(m)/(Nfft-m+1);
         end
-        for m = 1:N/2
-            Rx_bt(m) = Rx_bt(N-m);
+        for m = 2:Nfft/2
+            rx(m) = rx(Nfft-m+2);
         end
+
         % Generate Barlett window values
-        M_bt = round(N/10);
-        L = 2*M_bt+1;
-        wbarlett0 = zeros(1,L);
+        L = round(Nfft/10);
+        M = (L-1)/2;
+        wbarlett = zeros(1,L);
         for m = 1:L
             if(m<=((L+1)/2))
-                wbarlett0(m) = 2*m/(L-1);
+                wbarlett(m) = 2*m/(L-1);
             else
-                wbarlett0(m) = 2-2*m/(L-1);
+                wbarlett(m) = 2-2*m/(L-1);
             end
         end
+
         % Calculating periodogram using Blackman-Turkey method with Barlett window
         P_bt = zeros(1,fs/2);
         for f = 1:fs/2
-            for i = -M_bt:M_bt
-                P_bt(f) = P_bt(f) + wbarlett0(i+(L+1)/2)*Rx_bt(N/2+i)*exp(-1i*2*pi*(f-1)*(i+N/2)*T);
+            for i = -M:M
+                P_bt(f) = P_bt(f) + wbarlett(i+(L+1)/2)*rx(Nfft/2+i+1)*exp(-1i*2*pi*(f-1)*(i+Nfft/2+1)*T);
             end
             P_bt(f) = abs(P_bt(f))*T;
         end
